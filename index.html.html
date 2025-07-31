@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Calculadora Método Simplex</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    input, textarea { width: 100%; margin-bottom: 10px; padding: 5px; }
+    button { padding: 10px 15px; }
+    pre { background: #f0f0f0; padding: 10px; }
+  </style>
+</head>
+<body>
+
+  <h2>Calculadora Método Simplex (Maximización)</h2>
+
+  <label>Función Objetivo (ej: 3x + 5y):</label>
+  <input type="text" id="objetivo" value="3x + 5y">
+
+  <label>Restricciones (una por línea, ej: x + 2y <= 6):</label>
+  <textarea id="restricciones" rows="4">x + 2y <= 6
+3x + 2y <= 12</textarea>
+
+  <button onclick="resolverSimplex()">Resolver</button>
+
+  <h3>Resultado:</h3>
+  <pre id="resultado"></pre>
+
+  <script>
+    // Función para convertir ecuaciones en matrices
+    function parseInput(objetivoStr, restriccionesStr) {
+      let variables = [];
+      let restricciones = [];
+
+      // Extraer variables desde función objetivo
+      objetivoStr.replace(/([+-]?\s*\d*)\s*([a-z])/gi, (_, coef, v) => {
+        if (!variables.includes(v)) variables.push(v);
+      });
+
+      // Extraer coeficientes de función objetivo
+      const objetivo = variables.map(v => {
+        const match = objetivoStr.match(new RegExp("([+-]?\\s*\\d*)\\s*" + v, "i"));
+        if (match) {
+          return parseFloat(match[1].replace(/\s/g, '') || 1);
+        } else {
+          return 0;
+        }
+      });
+
+      // Procesar restricciones
+      restriccionesStr.trim().split('\n').forEach(line => {
+        const match = line.match(/(.+)\s*(<=|=|>=)\s*(\d+)/);
+        if (!match) return;
+        let [_, lhs, op, rhs] = match;
+        let fila = variables.map(v => {
+          const coefMatch = lhs.match(new RegExp("([+-]?\\s*\\d*)\\s*" + v, "i"));
+          if (coefMatch) {
+            return parseFloat(coefMatch[1].replace(/\s/g, '') || 1);
+          } else {
+            return 0;
+          }
+        });
+        restricciones.push({ coef: fila, signo: op, rhs: parseFloat(rhs) });
+      });
+
+      return { objetivo, restricciones, variables };
+    }
+
+    // Simplex básico: solo para ≤ restricciones y maximización
+    function resolverSimplex() {
+      const objetivoStr = document.getElementById("objetivo").value;
+      const restriccionesStr = document.getElementById("restricciones").value;
+      const { objetivo, restricciones, variables } = parseInput(objetivoStr, restriccionesStr);
+
+      // Construir tabla simplex
+      let tabla = restricciones.map((r, i) => [...r.coef, ...Array(restricciones.length).fill(0).map((_, j) => j === i ? 1 : 0), r.rhs]);
+      let filaZ = objetivo.map(x => -x).concat(Array(restricciones.length).fill(0)).concat([0]);
+      tabla.push(filaZ);
+
+      // Iterar
+      const log = [];
+      while (Math.min(...tabla.at(-1).slice(0, -1)) < 0) {
+        const z = tabla.at(-1);
+        const col = z.slice(0, -1).indexOf(Math.min(...z.slice(0, -1)));
+        const ratios = tabla.slice(0, -1).map(row => row[col] > 0 ? row.at(-1) / row[col] : Infinity);
+        const fila = ratios.indexOf(Math.min(...ratios));
+        const pivote = tabla[fila][col];
+        tabla[fila] = tabla[fila].map(x => x / pivote);
+        for (let i = 0; i < tabla.length; i++) {
+          if (i !== fila) {
+            const mult = tabla[i][col];
+            tabla[i] = tabla[i].map((x, j) => x - mult * tabla[fila][j]);
+          }
+        }
+        log.push(`Iteración:\n${tabla.map(row => row.map(n => n.toFixed(2)).join('\t')).join('\n')}`);
+      }
+
+      // Mostrar solución
+      let solucion = Array(variables.length).fill(0);
+      for (let i = 0; i < variables.length; i++) {
+        let col = tabla.map(row => row[i]);
+        if (col.filter((x, j) => j < restricciones.length && (x === 1 || x === 0)).length === restricciones.length) {
+          let fila = col.findIndex(x => x === 1);
+          solucion[i] = tabla[fila].at(-1);
+        }
+      }
+      let z = tabla.at(-1).at(-1);
+      document.getElementById("resultado").textContent =
+        `Z = ${z.toFixed(2)}\n` +
+        variables.map((v, i) => `${v} = ${solucion[i].toFixed(2)}`).join('\n') +
+        `\n\n${log.join('\n\n')}`;
+    }
+  </script>
+
+</body>
+</html>
