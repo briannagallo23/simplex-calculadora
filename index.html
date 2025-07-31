@@ -1,4 +1,37 @@
-<script>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>Calculadora Método Simplex con Dos Fases</title>
+</head>
+<body>
+  <h2>Calculadora Método Simplex con Método de Dos Fases</h2>
+
+  <label for="tipo">Tipo de problema:</label>
+  <select id="tipo">
+    <option>Maximizar</option>
+    <option>Minimizar</option>
+  </select>
+
+  <br><br>
+
+  <label for="objetivo">Función objetivo (ejemplo: 4x + 3y):</label><br>
+  <input id="objetivo" type="text" size="40" value="4x + 3y" />
+
+  <br><br>
+
+  <label for="restricciones">Restricciones (una por línea, ej: 2x + y <= 18):</label><br>
+  <textarea id="restricciones" rows="5" cols="40">2x + y <= 18
+2x + 3y <= 42
+3x + y <= 24</textarea>
+
+  <br><br>
+
+  <button onclick="resolverSimplex()">Resolver</button>
+
+  <pre id="resultado" style="background:#eee; padding:10px; margin-top:20px; white-space: pre-wrap;"></pre>
+
+  <script>
 function parseInput(objetivoStr, restriccionesStr) {
   let variables = [];
   let restricciones = [];
@@ -36,7 +69,6 @@ function resolverSimplex() {
   const n = variables.length;
   let tabla = [];
   let artificiales = [];
-  let nombresVars = [...variables];
   let slackIndex = 0;
 
   restricciones.forEach((r, i) => {
@@ -134,4 +166,7 @@ function simplexIterar(tabla) {
     }
   }
 }
-</script>
+  </script>
+
+</body>
+</html>
